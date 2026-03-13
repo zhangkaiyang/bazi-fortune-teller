@@ -10,6 +10,16 @@ from datetime import datetime
 from typing import Optional
 import logging
 
+# 导入新的运势分析模块
+try:
+    from fortune_analyzer import FortuneAnalyzer
+    fortune_analyzer = FortuneAnalyzer()
+    HAS_FORTUNE_ANALYZER = True
+except ImportError:
+    HAS_FORTUNE_ANALYZER = False
+    logger = logging.getLogger(__name__)
+    logger.warning("FortuneAnalyzer 模块未找到，使用简化版运势分析")
+
 # 配置日志
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
