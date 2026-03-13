@@ -624,15 +624,6 @@
         const loading = document.getElementById('loading');
         const resultPlaceholder = document.getElementById('result-placeholder');
         const baziResult = document.getElementById('bazi-result');
-                statsGrid.innerHTML = `
-                    <div class="stat-card">
-                        <div class="stat-value">--</div>
-                        <div class="stat-label">统计加载失败</div>
-                    </div>
-                `;
-            }
-        }
-        
         // 计算八字
         async function calculateBazi(event) {
             event.preventDefault();
