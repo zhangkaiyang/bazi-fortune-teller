@@ -1,0 +1,15 @@
+INFO:     Started server process [30621]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:35468 - "GET /health HTTP/1.1" 200 OK
+INFO:main:收到八字计算请求: {'birth_date': '1995-08-22', 'birth_time': '18:50', 'gender': 'male', 'use_solar_time': True, 'location_lng': None, 'location_lat': None}
+INFO:main:用神分析成功
+INFO:     127.0.0.1:36334 - "POST /api/bazi/calculate HTTP/1.1" 200 OK
+INFO:main:收到八字计算请求: {'birth_date': '2026-03-13', 'birth_time': '08:00', 'gender': 'male', 'use_solar_time': True, 'location_lng': None, 'location_lat': None}
+INFO:main:用神分析成功
+INFO:     36.28.19.163:0 - "POST /api/bazi/calculate HTTP/1.0" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [30621]

@@ -10,6 +10,32 @@ from datetime import datetime
 from typing import Optional
 import logging
 
+# 导入新的运势分析模块
+try:
+    from fortune_analyzer import FortuneAnalyzer
+    fortune_analyzer = FortuneAnalyzer()
+    HAS_FORTUNE_ANALYZER = True
+except ImportError:
+    HAS_FORTUNE_ANALYZER = False
+    logger = logging.getLogger(__name__)
+    logger.warning("FortuneAnalyzer 模块未找到，使用简化版运势分析")
+
+# 导入准确的八字计算模块
+try:
+    from accurate_bazi_fixed import calculate_bazi_accurate_fixed as calculate_bazi_accurate
+    HAS_ACCURATE_BAZI = True
+except ImportError:
+    HAS_ACCURATE_BAZI = False
+    logger.warning("accurate_bazi_fixed 模块未找到，使用简化版八字计算")
+
+# 导入用神分析模块
+try:
+    from bazi_yongshen import BaziYongshenAnalyzer
+    HAS_YONGSHEN_ANALYZER = True
+except ImportError:
+    HAS_YONGSHEN_ANALYZER = False
+    logger.warning("bazi_yongshen 模块未找到，无法进行用神分析")
+
 # 配置日志
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -54,113 +80,140 @@ class HealthResponse(BaseModel):
     version: str
     timestamp: str
 
-# 八字计算核心函数（简化版）
+# 八字计算核心函数（使用准确算法）
 def calculate_bazi_simple(birth_date: str, birth_time: str, gender: str) -> dict:
-    """简化的八字计算函数"""
+    """八字计算函数"""
     try:
-        # 解析日期时间
-        dt = datetime.strptime(f"{birth_date} {birth_time}", "%Y-%m-%d %H:%M")
+        # 使用准确的八字计算算法
+        if HAS_ACCURATE_BAZI:
+            # 使用准确的八字计算
+            result = calculate_bazi_accurate(birth_date, birth_time, gender)
+        else:
+            # 回退到简化算法
+            result = calculate_bazi_simple_fallback(birth_date, birth_time, gender)
         
-        # 简化计算逻辑
-        # 实际项目中应使用 lunar-python 等库进行精确计算
-        year = dt.year
-        month = dt.month
-        day = dt.day
-        hour = dt.hour
+        # 添加详细运势分析（如果可用）
+        try:
+            if HAS_FORTUNE_ANALYZER:
+                detailed_fortune = fortune_analyzer.analyze_detailed_fortune(result["bazi"], result["elements"])
+                result["detailed_fortune"] = detailed_fortune
+        except Exception as e:
+            logger.warning(f"详细运势分析失败: {e}")
+            # 不中断正常流程，继续返回基础结果
         
-        # 天干地支
-        heavenly_stems = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸']
-        earthly_branches = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥']
-        
-        # 简化计算（实际算法更复杂）
-        year_stem = heavenly_stems[(year - 4) % 10]
-        year_branch = earthly_branches[(year - 4) % 12]
-        month_stem = heavenly_stems[(month + 1) % 10]
-        month_branch = earthly_branches[(month + 1) % 12]
-        day_stem = heavenly_stems[day % 10]
-        day_branch = earthly_branches[day % 12]
-        hour_stem = heavenly_stems[(hour * 2) % 10]
-        hour_branch = earthly_branches[hour // 2]
-        
-        # 五行
-        elements = {
-            '甲': '木', '乙': '木', '丙': '火', '丁': '火',
-            '戊': '土', '己': '土', '庚': '金', '辛': '金',
-            '壬': '水', '癸': '水',
-            '子': '水', '丑': '土', '寅': '木', '卯': '木',
-            '辰': '土', '巳': '火', '午': '火', '未': '土',
-            '申': '金', '酉': '金', '戌': '土', '亥': '水'
-        }
-        
-        # 统计五行
-        element_counts = {'金': 0, '木': 0, '水': 0, '火': 0, '土': 0}
-        pillars = [year_stem, year_branch, month_stem, month_branch, day_stem, day_branch, hour_stem, hour_branch]
-        for item in pillars:
-            if item in elements:
-                element_counts[elements[item]] += 1
-        
-        # 日主性格
-        day_master_personality = {
-            '甲': '如参天大树，正直仁德，积极向上',
-            '乙': '如藤蔓花草，柔顺温和，适应力强',
-            '丙': '如太阳之火，热情开朗，光明磊落',
-            '丁': '如灯烛之火，文明礼仪，细心体贴',
-            '戊': '如城墙之土，诚实信用，稳重可靠',
-            '己': '如田园之土，温和包容，重视内涵',
-            '庚': '如斧钺之金，刚毅果断，重信守义',
-            '辛': '如珠宝之金，细腻敏感，追求完美',
-            '壬': '如江河之水，智慧灵活，适应变化',
-            '癸': '如雨露之水，温柔含蓄，善于谋划'
-        }
-        
-        # 运势建议
-        fortunes = [
-            "今年运势平稳，宜稳扎稳打，积累实力",
-            "机遇与挑战并存，需谨慎决策，把握时机",
-            "贵人运佳，事业有新发展，注意人际关系",
-            "财运亨通，但需注意健康，劳逸结合",
-            "学习成长的好时机，提升技能，开阔视野",
-            "人际关系和谐，感情顺利，家庭和睦"
-        ]
-        
-        fortune_index = (year + month + day) % len(fortunes)
-        
-        return {
-            "bazi": {
-                "year_pillar": f"{year_stem}{year_branch}",
-                "month_pillar": f"{month_stem}{month_branch}",
-                "day_pillar": f"{day_stem}{day_branch}",
-                "hour_pillar": f"{hour_stem}{hour_branch}",
-                "full_bazi": f"{year_stem}{year_branch} {month_stem}{month_branch} {day_stem}{day_branch} {hour_stem}{hour_branch}"
-            },
-            "elements": element_counts,
-            "day_master": {
-                "stem": day_stem,
-                "element": elements.get(day_stem, '未知'),
-                "personality": day_master_personality.get(day_stem, '性格特点需要详细分析'),
-                "yinyang": "阳" if heavenly_stems.index(day_stem) % 2 == 0 else "阴"
-            },
-            "fortune": {
-                "year": f"{heavenly_stems[(year - 4) % 10]}{earthly_branches[(year - 4) % 12]}",
-                "analysis": fortunes[fortune_index],
-                "suggestions": [
-                    "保持积极心态，面对挑战",
-                    "注意身体健康，定期检查",
-                    "多与家人朋友沟通",
-                    "学习新知识，提升自我"
-                ]
-            },
-            "basic_info": {
-                "solar_date": birth_date,
-                "solar_time": birth_time,
-                "gender": "男" if gender == "male" else "女",
-                "age": datetime.now().year - year
-            }
-        }
+        return result
         
     except Exception as e:
         logger.error(f"八字计算错误: {e}")
         raise HTTPException(status_code=400, detail=f"日期时间格式错误: {str(e)}")
+
+# 简化版八字计算（备用）
+def calculate_bazi_simple_fallback(birth_date: str, birth_time: str, gender: str) -> dict:
+    """简化的八字计算函数（备用）"""
+    # 解析日期时间
+    dt = datetime.strptime(f"{birth_date} {birth_time}", "%Y-%m-%d %H:%M")
+    
+    year = dt.year
+    month = dt.month
+    day = dt.day
+    hour = dt.hour
+    
+    # 天干地支
+    heavenly_stems = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸']
+    earthly_branches = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥']
+    
+    # 简化计算（实际算法更复杂）
+    year_stem = heavenly_stems[(year - 4) % 10]
+    year_branch = earthly_branches[(year - 4) % 12]
+    month_stem = heavenly_stems[(month + 1) % 10]
+    month_branch = earthly_branches[(month + 1) % 12]
+    day_stem = heavenly_stems[day % 10]
+    day_branch = earthly_branches[day % 12]
+    hour_stem = heavenly_stems[(hour * 2) % 10]
+    hour_branch = earthly_branches[hour // 2]
+    
+    # 五行
+    elements = {
+        '甲': '木', '乙': '木', '丙': '火', '丁': '火',
+        '戊': '土', '己': '土', '庚': '金', '辛': '金',
+        '壬': '水', '癸': '水',
+        '子': '水', '丑': '土', '寅': '木', '卯': '木',
+        '辰': '土', '巳': '火', '午': '火', '未': '土',
+        '申': '金', '酉': '金', '戌': '土', '亥': '水'
+    }
+    
+    # 统计五行
+    element_counts = {'金': 0, '木': 0, '水': 0, '火': 0, '土': 0}
+    pillars = [year_stem, year_branch, month_stem, month_branch, day_stem, day_branch, hour_stem, hour_branch]
+    for item in pillars:
+        if item in elements:
+            element_counts[elements[item]] += 1
+    
+    # 日主性格
+    day_master_personality = {
+        '甲': '如参天大树，正直仁德，积极向上',
+        '乙': '如藤蔓花草，柔顺温和，适应力强',
+        '丙': '如太阳之火，热情开朗，光明磊落',
+        '丁': '如灯烛之火，文明礼仪，细心体贴',
+        '戊': '如城墙之土，诚实信用，稳重可靠',
+        '己': '如田园之土，温和包容，重视内涵',
+        '庚': '如斧钺之金，刚毅果断，重信守义',
+        '辛': '如珠宝之金，细腻敏感，追求完美',
+        '壬': '如江河之水，智慧灵活，适应变化',
+        '癸': '如雨露之水，温柔含蓄，善于谋划'
+    }
+    
+    # 运势建议
+    fortunes = [
+        "今年运势平稳，宜稳扎稳打，积累实力",
+        "机遇与挑战并存，需谨慎决策，把握时机",
+        "贵人运佳，事业有新发展，注意人际关系",
+        "财运亨通，但需注意健康，劳逸结合",
+        "学习成长的好时机，提升技能，开阔视野",
+        "人际关系和谐，感情顺利，家庭和睦"
+    ]
+    
+    fortune_index = (year + month + day) % len(fortunes)
+    
+    # 生肖
+    chinese_zodiacs = ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪']
+    zodiac_index = (year - 4) % 12
+    
+    # 构建基础结果
+    return {
+        "bazi": {
+            "year_pillar": f"{year_stem}{year_branch}",
+            "month_pillar": f"{month_stem}{month_branch}",
+            "day_pillar": f"{day_stem}{day_branch}",
+            "hour_pillar": f"{hour_stem}{hour_branch}",
+            "full_bazi": f"{year_stem}{year_branch} {month_stem}{month_branch} {day_stem}{day_branch} {hour_stem}{hour_branch}"
+        },
+        "elements": element_counts,
+        "day_master": {
+            "stem": day_stem,
+            "element": elements.get(day_stem, '未知'),
+            "personality": day_master_personality.get(day_stem, '性格特点需要详细分析'),
+            "yinyang": "阳" if heavenly_stems.index(day_stem) % 2 == 0 else "阴"
+        },
+        "fortune": {
+            "year": f"{heavenly_stems[(year - 4) % 10]}{earthly_branches[(year - 4) % 12]}",
+            "analysis": fortunes[fortune_index],
+            "suggestions": [
+                "保持积极心态，面对挑战",
+                "注意身体健康，定期检查",
+                "多与家人朋友沟通",
+                "学习新知识，提升自我"
+            ]
+        },
+        "basic_info": {
+            "solar_date": birth_date,
+            "solar_time": birth_time,
+            "gender": "男" if gender == "male" else "女",
+            "age": datetime.now().year - year,
+            "chinese_zodiac": chinese_zodiacs[zodiac_index],
+            "element": elements.get(year_stem, '未知')
+        }
+    }
 
 # API 路由
 @app.get("/")
@@ -205,6 +258,30 @@ async def calculate_bazi(request: BaziRequest) -> BaziResponse:
             result["note"] = "已考虑真太阳时校正"
         else:
             result["use_solar_time"] = request.use_solar_time
+        
+        # 添加用神分析
+        if HAS_YONGSHEN_ANALYZER:
+            try:
+                yongshen_result = BaziYongshenAnalyzer.analyze_yongshen(result)
+                if "success" in yongshen_result and yongshen_result["success"]:
+                    result["yongshen_analysis"] = yongshen_result
+                    logger.info("用神分析成功")
+                else:
+                    result["yongshen_analysis"] = {
+                        "error": "用神分析失败",
+                        "details": str(yongshen_result.get("error", "未知错误"))
+                    }
+                    logger.warning(f"用神分析失败: {yongshen_result}")
+            except Exception as e:
+                logger.error(f"用神分析异常: {e}")
+                result["yongshen_analysis"] = {
+                    "error": f"用神分析异常: {str(e)}",
+                    "details": "请检查八字数据格式"
+                }
+        else:
+            result["yongshen_analysis"] = {
+                "note": "用神分析模块未加载，请检查后端配置"
+            }
         
         return BaziResponse(
             success=True,

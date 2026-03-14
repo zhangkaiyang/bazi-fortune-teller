@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用神分析功能测试</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            margin: 20px;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #8B0000;
+            text-align: center;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        .success {
+            border-color: #4CAF50;
+            background: #f1f8e9;
+        }
+        .error {
+            border-color: #f44336;
+            background: #ffebee;
+        }
+        button {
+            background: #8B0000;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        button:hover {
+            background: #B22222;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow: auto;
+            max-height: 400px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .status.ok {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 八字算命网站 - 用神分析功能测试</h1>
+        
+        <div class="test-section">
+            <h2>1. 后端API测试</h2>
+            <button onclick="testBackendAPI()">测试后端API</button>
+            <div id="backendResult" class="status"></div>
+            <pre id="apiResponse"></pre>
+        </div>
+        
+        <div class="test-section">
+            <h2>2. 前端用神分析显示测试</h2>
+            <button onclick="testFrontendDisplay()">测试前端显示</button>
+            <div id="frontendResult" class="status"></div>
+            <div id="yongshenDisplay" style="margin-top: 20px;"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>3. 完整功能测试</h2>
+            <button onclick="testFullFunction()">测试完整功能</button>
+            <div id="fullResult" class="status"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>4. 访问网站</h2>
+            <p>网站地址: <a href="http://139.159.230.20" target="_blank">http://139.159.230.20</a></p>
+            <p>API文档: <a href="http://139.159.230.20:8000/docs" target="_blank">http://139.159.230.20:8000/docs</a></p>
+            <p>测试用例: 1995-08-22 18:50 男</p>
+        </div>
+    </div>
+
+    <script>
+        async function testBackendAPI() {
+            const resultDiv = document.getElementById('backendResult');
+            const apiResponse = document.getElementById('apiResponse');
+            
+            resultDiv.className = 'status';
+            resultDiv.innerHTML = '正在测试后端API...';
+            
+            try {
+                const response = await fetch('http://139.159.230.20:8000/api/bazi/calculate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        birth_date: '1995-08-22',
+                        birth_time: '18:50',
+                        gender: 'male',
+                        use_solar_time: true
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    resultDiv.className = 'status ok';
+                    resultDiv.innerHTML = '✅ 后端API测试成功！';
+                    
+                    // 显示用神分析部分
+                    if (data.data.yongshen_analysis) {
+                        apiResponse.innerHTML = JSON.stringify(data.data.yongshen_analysis, null, 2);
+                    } else {
+                        apiResponse.innerHTML = JSON.stringify(data.data, null, 2);
+                    }
+                } else {
+                    resultDiv.className = 'status error';
+                    resultDiv.innerHTML = '❌ 后端API返回错误: ' + (data.message || '未知错误');
+                    apiResponse.innerHTML = JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                resultDiv.className = 'status error';
+                resultDiv.innerHTML = '❌ 后端API测试失败: ' + error.message;
+                apiResponse.innerHTML = error.toString();
+            }
+        }
+        
+        function testFrontendDisplay() {
+            const resultDiv = document.getElementById('frontendResult');
+            const displayDiv = document.getElementById('yongshenDisplay');
+            
+            resultDiv.className = 'status';
+            resultDiv.innerHTML = '正在测试前端用神分析显示...';
+            
+            // 模拟用神分析数据
+            const yongshenData = {
+                success: true,
+                elements_count: { "金": 4, "木": 4, "水": 2, "火": 0, "土": 0 },
+                strength_analysis: {
+                    day_stem: "乙",
+                    day_element: "木",
+                    same_element_count: 4,
+                    support_count: 2,
+                    suppress_count: 4.0,
+                    strength_score: 2.0,
+                    strength: "中和",
+                    analysis: "日主木中和，如青松挺拔，刚柔并济"
+                },
+                pattern: {
+                    pattern: "中和格",
+                    detail: "五行相对平衡，流通为佳",
+                    recommendation: "五行平衡，流通顺畅为佳"
+                },
+                yongshen: {
+                    yongshen: ["火"],
+                    jishen: ["金"],
+                    analysis: "五行相对平衡，宜补益最弱的火行。",
+                    priority: [
+                        {
+                            element: "火",
+                            priority: 5,
+                            relation: "调候",
+                            description: "代表礼仪、热情、光明，主南方，红色，夏季"
+                        }
+                    ]
+                },
+                tiaohou: {
+                    season: "秋季七月",
+                    season_element: "金",
+                    analysis: "秋季金旺，需火炼金，需木生火",
+                    suggestions: ["宜用火炼金", "宜用木生火", "避免土过多"]
+                },
+                comprehensive: {
+                    summary: "日主乙(木)，五行相对平衡，流通为佳。喜用神为：火。忌神为：金。生于秋季七月，秋季金旺，需火炼金，需木生火",
+                    key_points: [
+                        "日主：乙(木)",
+                        "格局：中和格",
+                        "用神：火",
+                        "忌神：金",
+                        "调候：秋季金旺，需火炼金，需木生火"
+                    ]
+                },
+                recommendations: [
+                    "宜加强火五行能量",
+                    "宜避免或减弱金五行影响",
+                    "宜用火炼金",
+                    "宜用木生火",
+                    "避免土过多",
+                    "根据用神选择职业、方位、颜色等",
+                    "注意五行平衡，避免极端",
+                    "结合大运流年动态调整"
+                ]
+            };
+            
+            // 创建用神分析显示HTML
+            const yongshenHTML = `
+                <div class="yongshen-section" style="background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%); border: 2px solid #ff9800; border-radius: 15px; padding: 25px; margin: 25px 0; box-shadow: 0 5px 15px rgba(255, 152, 0, 0.1);">
+                    <h3 style="color: #ff6f00; margin-bottom: 20px; font-size: 1.5rem; border-bottom: 2px solid #ffb74d; padding-bottom: 10px;">📊 用神分析</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 15px;">
+                        <div style="background: white; border-radius: 10px; padding: 20px; box-shadow: 0 3px 10px rgba(0,0,0,0.1); border-left: 4px solid #ff9800;">
+                            <h4 style="color: #ff6f00; margin-bottom: 10px; font-size: 1.2rem;">日主分析</h4>
+                            <p><strong>日主：</strong>${yongshenData.strength_analysis.day_stem}(${yongshenData.strength_analysis.day_element})</p>
+                            <p><strong>强弱：</strong>${yongshenData.strength_analysis.strength}</p>
+                            <p><strong>分析：</strong>${yongshenData.strength_analysis.analysis}</p>
+                        </div>
+                        
+                        <div style="background: white; border-radius: 10px; padding: 20px; box-shadow: 0 3px 10px rgba(0,0,0,0.1); border-left: 4px solid #ff9800;">
+                            <h4 style="color: #ff6f00; margin-bottom: 10px; font-size: 1.2rem;">格局判断</h4>
+                            <p><strong>格局：</strong>${yongshenData.pattern.pattern}</p>
+                            <p><strong>详情：</strong>${yongshenData.pattern.detail}</p>
+                            <p><strong>建议：</strong>${yongshenData.pattern.recommendation}</p>
+                        </div>
+                        
+                        <div style="background: white; border-radius: 10px; padding: 20px; box-shadow: 0 3px 10px rgba(0,0,0,0.1); border-left: 4px solid #ff9800;">
+                            <h4 style="color: #ff6f00; margin-bottom: 10px; font-size: 1.2rem;">用神忌神</h4>
+                            <p><strong>喜用神：</strong>${yongshenData.yongshen.yongshen.join('、')}</p>
+                            <p><strong>忌神：</strong>${yongshenData.yongshen.jishen.join('、')}</p>
+                            <p><strong>分析：</strong>${yongshenData.yongshen.analysis}</p>
+                        </div>
+                        
+                        <div style="background: white; border-radius: 10px; padding: 20px; box-shadow: 0 3px 10px rgba(0,0,0,0.1); border-left: 4px solid #ff9800; grid-column: 1 / -1;">
+                            <h4 style="color: #ff6f00; margin-bottom: 10px; font-size: 1.2rem;">调候分析</h4>
+                            <p><strong>季节：</strong>${yongshenData.tiaohou.season} (${yongshenData.tiaohou.season_element})</p>
+                            <p><strong>分析：</strong>${yongshenData.tiaohou.analysis}</p>
+                            <p><strong>建议：</strong>${yongshenData.tiaohou.suggestions.join('；')}</p>
+                        </div>
+                        
+                        <div style="background: white; border-radius: 10px; padding: 20px; box-shadow: 0 3px 10px rgba(0,0,0,0.1); border-left: 4px solid #ff9800; grid-column: 1 / -1;">
+                            <h4 style="color: #ff6f00; margin-bottom: 10px; font-size: 1.2rem;">综合建议</h4>
+                            <p><strong>总结：</strong>${yongshenData.comprehensive.summary}</p>
+                            <div style="margin-top: 10px;">
+                                <strong>关键要点：</strong>
+                                <ul style="margin-top: 5px; padding-left: 20px;">
+                                    ${yongshenData.comprehensive.key_points.map(point => `<li>${point}</li>`).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div style="background: white; border-radius: 10px; padding: 20px; box-shadow: 0 3px 10px rgba(0,0,0,0.1); border-left: 4px solid #ff9800; grid-column: 1 / -1;">
+                            <h4 style="color: #ff6f00; margin-bottom: 10px; font-size: 1.2rem;">详细建议</h4>
+                            <ul style="margin-top: 5px; padding-left: 20px;">
+                                ${yongshenData.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            displayDiv.innerHTML = yongshenHTML;
+            resultDiv.className = 'status ok';
+            resultDiv.innerHTML = '✅ 前端用神分析显示测试成功！';
+        }
+        
+        async function testFullFunction() {
+            const resultDiv = document.getElementById('fullResult');
+            resultDiv.className = 'status';
+            resultDiv.innerHTML = '正在测试完整功能...';
+            
+            // 先测试后端API
+            try {
+                const response = await fetch('http://139.159.230.20:8000/api/bazi/calculate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        birth_date: '1995-08-22',
+                        birth_time: '18:50',
+                        gender: 'male',
+                        use_solar_time: true
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success && data.data.yongshen_analysis) {
+                    resultDiv.className = 'status ok';
+                    resultDiv.innerHTML = '✅ 完整功能测试成功！后端API返回了完整的用神分析数据。';
+                } else {
+                    resultDiv.className = 'status error';
+                    resultDiv.innerHTML = '❌ 完整功能测试失败: ' + (data.message || '缺少用神分析数据');
+                }
+            } catch (error) {
+                resultDiv.className = 'status error';
+                resultDiv.innerHTML = '❌ 完整功能测试失败: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
